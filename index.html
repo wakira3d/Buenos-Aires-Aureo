@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buenos Aires | Colección Privada</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        /* --- ESTILOS GENERALES (RESET) --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background-color: #0f0806; 
+            color: #fffff0; /* Blanco Crema */
+            font-family: 'Lato', sans-serif;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative; 
+        }
+
+        /* --- LIGHTBOX (VISOR DE FOTOS) --- */
+        #lightbox {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(15, 8, 6, 0.95);
+            z-index: 2000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        #lightbox.show {
+            display: flex; 
+            opacity: 1;
+        }
+
+        #lightbox-img {
+            max-width: 90%;
+            max-height: 80%;
+            border: 2px solid #c5a47e; 
+            box-shadow: 0 0 30px rgba(197, 164, 126, 0.3);
+            transform: scale(0.9);
+            transition: transform 0.5s ease;
+        }
+
+        #lightbox.show #lightbox-img { transform: scale(1); }
+
+        #close-btn {
+            margin-top: 20px;
+            color: #fffff0;
+            font-family: 'Cinzel', serif;
+            cursor: pointer;
+            border: 1px solid #5d4037;
+            padding: 5px 20px;
+            transition: all 0.3s;
+        }
+
+        #close-btn:hover {
+            color: #c5a47e;
+            border-color: #c5a47e;
+        }
+
+        /* --- VIDEO DE FONDO Y OVERLAY --- */
+        #bg-video {
+            position: fixed;
+            top: 50%; left: 50%;
+            min-width: 100%; min-height: 100%;
+            width: auto; height: auto;
+            z-index: -2; 
+            transform: translateX(-50%) translateY(-50%);
+            object-fit: cover; 
+            filter: blur(3px) grayscale(40%); 
+        }
+
+        #bg-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; 
+            background: linear-gradient(rgba(62, 39, 35, 0.85), rgba(15, 8, 6, 0.95));
+        }
+
+        /* --- EL CONTENEDOR "FLASH" (Responsive Base) --- */
+        #flash-stage {
+            width: 960px;
+            height: 600px;
+            max-width: 95vw; /* Mejora Responsive 1 */
+            max-height: 90vh; /* Mejora Responsive 1 */
+            background-color: rgba(62, 39, 35, 0.95); 
+            position: relative;
+            box-shadow: 0 0 60px rgba(0,0,0,0.9), 0 0 20px rgba(197, 164, 126, 0.2); 
+            border: 1px solid #5d4037;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            z-index: 10; 
+            transition: width 0.3s, height 0.3s; /* Suaviza el cambio de tamaño */
+        }
+
+        /* --- HEADER Y NAVEGACIÓN --- */
+        header {
+            height: 80px;
+            min-height: 80px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 40px;
+            border-bottom: 1px solid rgba(197, 164, 126, 0.2);
+            z-index: 100;
+            background: rgba(62, 39, 35, 0.98); /* Fondo sólido para que no se mezcle */
+        }
+
+        .logo {
+            font-family: 'Cinzel', serif;
+            font-size: 1.4rem;
+            color: #c5a47e;
+            text-shadow: 0 0 10px rgba(197, 164, 126, 0.3);
+            white-space: nowrap;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            gap: 30px;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: #fffff0;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            position: relative;
+            cursor: pointer;
+        }
+
+        nav a:hover {
+            color: #c5a47e;
+            text-shadow: 0 0 8px rgba(197, 164, 126, 0.6);
+        }
+        
+        nav a::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 1px;
+            bottom: -5px;
+            left: 50%;
+            background-color: #c5a47e;
+            transition: width 0.3s ease, left 0.3s ease;
+        }
+
+        nav a:hover::after { width: 100%; left: 0; }
+
+        /* --- CONTENIDO PRINCIPAL --- */
+        #content-area {
+            flex: 1;
+            position: relative;
+            padding: 40px;
+            overflow-y: auto; /* Permite scroll si el contenido es mucho en móvil */
+        }
+
+        /* Scrollbar personalizada sutil */
+        #content-area::-webkit-scrollbar { width: 6px; }
+        #content-area::-webkit-scrollbar-track { background: #2d1b18; }
+        #content-area::-webkit-scrollbar-thumb { background: #5d4037; border-radius: 3px; }
+
+        .page-section {
+            position: absolute;
+            top: 0; left: 0; width: 100%; min-height: 100%; /* min-height para asegurar fondo */
+            padding: 40px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.6s ease; /* Transición base solo opacidad */
+            background-image: url('https://www.transparenttextures.com/patterns/dark-leather.png'); 
+            overflow: hidden; /* Para contener la imagen de fondo de Places */
+        }
+
+        .page-section.active {
+            opacity: 1;
+            visibility: visible;
+            z-index: 10;
+        }
+
+        /* --- MEJORA 3: ANIMACIONES CINEMÁTICAS (Stagger) --- */
+        /* Inicialmente los elementos están ocultos y desplazados */
+        .page-section h1, 
+        .page-section h2, 
+        .page-section p, 
+        .page-section .gold-divider,
+        .page-section .btn-gold,
+        .page-section ul,
+        .page-section .gallery-grid,
+        .page-section form {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: none; /* Quitamos transición por defecto para controlar con animation */
+        }
+
+        /* Definimos la animación */
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Cuando la sección está activa, ejecutamos la animación */
+        .page-section.active h1, .page-section.active h2 { animation: fadeInUp 0.8s ease forwards 0.1s; }
+        .page-section.active .gold-divider { animation: fadeInUp 0.8s ease forwards 0.2s; }
+        .page-section.active p { animation: fadeInUp 0.8s ease forwards 0.3s; }
+        .page-section.active ul { animation: fadeInUp 0.8s ease forwards 0.4s; }
+        .page-section.active .btn-gold { animation: fadeInUp 0.8s ease forwards 0.5s; }
+        .page-section.active .gallery-grid { animation: fadeInUp 0.8s ease forwards 0.4s; }
+        .page-section.active form { animation: fadeInUp 0.8s ease forwards 0.4s; }
+
+
+        /* --- TIPOGRAFÍA Y ELEMENTOS --- */
+        h1, h2 {
+            font-family: 'Cinzel', serif;
+            color: #c5a47e;
+            margin-bottom: 20px;
+            font-weight: 400;
+        }
+
+        p {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #ddd;
+            margin-bottom: 15px;
+            max-width: 600px;
+        }
+
+        .gold-divider {
+            width: 50px;
+            height: 2px;
+            background-color: #c5a47e;
+            margin-bottom: 30px;
+        }
+
+        /* --- MEJORA 2: SECCIÓN LUGARES (HOVER) --- */
+        /* Contenedor de la imagen fantasma */
+        #place-preview-bg {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-size: cover;
+            background-position: center;
+            opacity: 0;
+            transition: opacity 0.6s ease;
+            z-index: -1;
+            filter: grayscale(100%) brightness(0.6) sepia(0.2);
+            mix-blend-mode: soft-light; /* Mezcla elegante con el fondo */
+            pointer-events: none;
+        }
+
+        .places-list li {
+            margin-bottom: 15px; 
+            border-bottom: 1px solid #5d4037; 
+            padding: 10px 0;
+            cursor: pointer;
+            transition: padding-left 0.3s, color 0.3s;
+        }
+
+        .places-list li:hover {
+            padding-left: 15px;
+            color: #c5a47e;
+            border-bottom-color: #c5a47e;
+        }
+
+        /* --- GALERIA Y FORMULARIOS --- */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .gallery-thumb {
+            width: 100%; height: 100px;
+            object-fit: cover; 
+            border: 1px solid #5d4037;
+            cursor: pointer;
+            transition: all 0.3s;
+            opacity: 0.7;
+        }
+        .gallery-thumb:hover {
+            opacity: 1;
+            border-color: #c5a47e;
+            transform: scale(1.05);
+        }
+
+        .form-group { margin-bottom: 25px; }
+        .input-minimal {
+            width: 100%; max-width: 400px;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid #5d4037;
+            color: #fff;
+            padding: 10px 0;
+            font-family: 'Lato', sans-serif;
+            transition: border-color 0.3s;
+        }
+        .input-minimal:focus { outline: none; border-bottom: 1px solid #c5a47e; }
+        .btn-gold {
+            background: transparent;
+            border: 1px solid #c5a47e;
+            color: #c5a47e;
+            padding: 10px 30px;
+            font-family: 'Cinzel', serif;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        .btn-gold:hover {
+            background-color: #c5a47e;
+            color: #3e2723;
+            box-shadow: 0 0 15px rgba(197, 164, 126, 0.4);
+        }
+
+        /* --- PRELOADER --- */
+        #preloader {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #0f0806; 
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 1.5s ease;
+        }
+        .loader-line {
+            width: 0%; height: 2px;
+            background: linear-gradient(90deg, transparent, #c5a47e, transparent);
+            margin-top: 20px;
+            animation: loadLine 2s forwards ease-in-out;
+        }
+        .loader-text {
+            font-family: 'Cinzel', serif;
+            color: #c5a47e;
+            letter-spacing: 5px;
+            font-size: 0.8rem;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes loadLine { 0% { width: 0%; opacity: 0;} 50% { opacity: 1; } 100% { width: 100%; opacity: 0; } }
+        @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+
+        /* --- CONTROL DE SONIDO --- */
+        #sound-control {
+            position: absolute; bottom: 15px; right: 20px;
+            font-family: 'Cinzel', serif; font-size: 0.7rem; color: #5d4037; 
+            cursor: pointer; z-index: 100; transition: all 0.3s; letter-spacing: 2px;
+        }
+        #sound-control:hover { color: #c5a47e; text-shadow: 0 0 5px rgba(197, 164, 126, 0.5); }
+
+        /* --- MEJORA 1: RESPONSIVE (MEDIA QUERIES) --- */
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                height: auto;
+                padding: 20px 10px;
+                gap: 15px;
+            }
+            
+            .logo { font-size: 1.2rem; margin-bottom: 10px; }
+            
+            nav ul {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 15px;
+            }
+            
+            nav a { font-size: 0.7rem; }
+            
+            #content-area { padding: 20px; }
+            
+            .page-section { padding: 20px; }
+            
+            h1 { font-size: 1.8rem !important; }
+            
+            .gallery-grid { grid-template-columns: repeat(2, 1fr); }
+            
+            /* Ajuste de sección About para móviles */
+            #about > div { flex-direction: column; }
+            #about img-container { width: 100% !important; height: 200px !important; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <video autoplay muted loop id="bg-video">
+        <source src="video_1.mp4" type="video/mp4">
+        </video>
+
+    <div id="bg-overlay"></div>
+
+    <div id="flash-stage">
+
+        <div id="preloader">
+            <div class="loader-text">CARGANDO EXPERIENCIA</div>
+            <div class="loader-line"></div>
+        </div>
+
+        <header>
+            <div class="logo">BUENOS AIRES <span style="font-size:0.7em; color:#fff;">| VISTAS</span></div>
+            <nav>
+                <ul>
+                    <li><a onclick="navigate('home')">Inicio</a></li>
+                    <li><a onclick="navigate('about')">Nosotros</a></li>
+                    <li><a onclick="navigate('places')">Lugares</a></li>
+                    <li><a onclick="navigate('gallery')">Galería</a></li>
+                    <li><a onclick="navigate('contact')">Contacto</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <div id="content-area">
+
+            <div id="home" class="page-section active">
+                <div style="height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: flex-start;">
+                    <h1 style="font-size: 2.5rem; letter-spacing: 5px;">LA CIUDAD DORADA</h1>
+                    <div class="gold-divider"></div>
+                    <p style="font-style: italic;">Una perspectiva atemporal de la arquitectura porteña.</p>
+                    <button class="btn-gold" onclick="navigate('places')">EXPLORAR COLECCIÓN</button>
+                </div>
+            </div>
+
+            <div id="about" class="page-section">
+                <h2>NUESTRA ESENCIA</h2>
+                <div class="gold-divider"></div>
+                <div style="display: flex; gap: 40px; align-items: flex-start;">
+                    <div style="flex: 1;">
+                        <p><strong>Acerca del Proyecto:</strong><br>
+                        Este sitio nace de la necesidad de capturar la elegancia de Buenos Aires bajo una luz diferente. Inspirados en el diseño clásico de la era digital dorada.</p>
+                        <br>
+                        <p><strong>¿Quiénes Somos?</strong><br>
+                        Somos un equipo de fotógrafos y diseñadores apasionados por los detalles ocultos en las fachadas de San Telmo, Recoleta y el Microcentro.</p>
+                    </div>
+                    <div class="img-container" style="width: 200px; height: 300px; background: #2d1b18; border: 1px solid #c5a47e; display: flex; align-items: center; justify-content: center; color: #5d4037; flex-shrink: 0;">
+                        <img src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=300&q=80" style="width:100%; height:100%; object-fit:cover; opacity:0.8;">
+                    </div>
+                </div>
+            </div>
+
+            <div id="places" class="page-section">
+                <div id="place-preview-bg"></div>
+                
+                <div style="position: relative; z-index: 2;">
+                    <h2>LUGARES EMBLEMÁTICOS</h2>
+                    <div class="gold-divider"></div>
+                    <p>Seleccione una ubicación para descubrir su esencia.</p>
+                    
+                    <ul class="places-list" style="list-style: none; margin-top: 20px;">
+                        <li onmouseover="showPlace('https://images.unsplash.com/photo-1589909202802-8f4aadce1849?auto=format&fit=crop&w=800&q=80')" 
+                            onmouseout="hidePlace()">
+                            <span style="color: #c5a47e;">01.</span> Palacio Barolo <span style="font-size: 0.8em; color: #777; float: right;">Av. de Mayo</span>
+                        </li>
+                        <li onmouseover="showPlace('https://images.unsplash.com/photo-1612294037637-ec328d0e075e?auto=format&fit=crop&w=800&q=80')" 
+                            onmouseout="hidePlace()">
+                            <span style="color: #c5a47e;">02.</span> Teatro Colón <span style="font-size: 0.8em; color: #777; float: right;">Tribunales</span>
+                        </li>
+                        <li onmouseover="showPlace('https://images.unsplash.com/photo-1583328549302-3c467df84374?auto=format&fit=crop&w=800&q=80')" 
+                            onmouseout="hidePlace()">
+                            <span style="color: #c5a47e;">03.</span> El Ateneo <span style="font-size: 0.8em; color: #777; float: right;">Recoleta</span>
+                        </li>
+                         <li onmouseover="showPlace('https://images.unsplash.com/photo-1563292728-6bc48d613990?auto=format&fit=crop&w=800&q=80')" 
+                            onmouseout="hidePlace()">
+                            <span style="color: #c5a47e;">04.</span> Café Tortoni <span style="font-size: 0.8em; color: #777; float: right;">Av. de Mayo</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="gallery" class="page-section">
+                <h2>GALERÍA VISUAL</h2>
+                <div class="gold-divider"></div>
+                <p>Un recorrido visual por nuestros archivos. (Click para ampliar)</p>
+                
+                <div class="gallery-grid">
+                    <img src="img/foto1.jpg?auto=format&fit=crop&w=300&q=80" class="gallery-thumb" onclick="openLightbox(this.src)">
+                    <img src="img/foto2.jpg?auto=format&fit=crop&w=300&q=80" class="gallery-thumb" onclick="openLightbox(this.src)">
+                    <img src="img/foto3.jpg?auto=format&fit=crop&w=300&q=80" class="gallery-thumb" onclick="openLightbox(this.src)">
+                    <img src="img/foto4.jpg?auto=format&fit=crop&w=300&q=80" class="gallery-thumb" onclick="openLightbox(this.src)">
+                    <img src="img/foto5.jpg?auto=format&fit=crop&w=300&q=80" class="gallery-thumb" onclick="openLightbox(this.src)">
+                    <img src="img/foto6.jpg?auto=format&fit=crop&w=300&q=80" class="gallery-thumb" onclick="openLightbox(this.src)">
+                    <img src="img/foto7.jpg?auto=format&fit=crop&w=300&q=80" class="gallery-thumb" onclick="openLightbox(this.src)">
+                    <img src="img/foto8.jpg?auto=format&fit=crop&w=300&q=80" class="gallery-thumb" onclick="openLightbox(this.src)">
+					<img src="img/foto9.jpg?auto=format&fit=crop&w=300&q=80" class="gallery-thumb" onclick="openLightbox(this.src)">
+					<img src="img/foto10.jpg?auto=format&fit=crop&w=300&q=80" class="gallery-thumb" onclick="openLightbox(this.src)">
+					<img src="img/foto11.jpg?auto=format&fit=crop&w=300&q=80" class="gallery-thumb" onclick="openLightbox(this.src)">
+					<img src="img/foto12.jpg?auto=format&fit=crop&w=300&q=80" class="gallery-thumb" onclick="openLightbox(this.src)">
+                </div>
+            </div>
+
+            <div id="contact" class="page-section">
+                <h2>CONTACTO</h2>
+                <div class="gold-divider"></div>
+                <p>Para consultas sobre impresiones o sesiones privadas.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="text" class="input-minimal" placeholder="Su Nombre">
+                    </div>
+                    <div class="form-group">
+                        <input type="email" class="input-minimal" placeholder="Correo Electrónico">
+                    </div>
+                    <div class="form-group">
+                        <input type="text" class="input-minimal" placeholder="Asunto">
+                    </div>
+                    <button type="button" class="btn-gold">ENVIAR</button>
+                </form>
+            </div>
+
+        </div>
+        
+        <div style="text-align: center; font-size: 0.6rem; color: #5d4037; padding-bottom: 10px;">
+            DISEÑO INSPIRADO EN VRLX.NET | 2025
+        </div>
+
+        <audio id="bg-music" loop>
+            <source src="sound/musica.mp3" type="audio/mp3">
+        </audio>
+
+        <div id="sound-control" onclick="toggleMusic()">
+            [ SONIDO: <span id="sound-status">OFF</span> ]
+        </div>
+
+    </div>
+
+    <div id="lightbox" onclick="closeLightbox()">
+        <img id="lightbox-img" src="" alt="Vista ampliada">
+        <div id="close-btn">CERRAR VISTA</div>
+    </div>
+
+    <script>
+        // --- PRELOADER ---
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const preloader = document.getElementById('preloader');
+                preloader.style.opacity = '0';
+                setTimeout(() => {
+                    preloader.style.display = 'none';
+                }, 1500);
+            }, 2000);
+        });
+
+        // --- NAVEGACIÓN ---
+        function navigate(sectionId) {
+            const sections = document.querySelectorAll('.page-section');
+            // Quitamos la clase active de todos
+            sections.forEach(sec => {
+                sec.classList.remove('active');
+            });
+            // Agregamos la clase active al objetivo
+            const target = document.getElementById(sectionId);
+            if (target) {
+                target.classList.add('active');
+            }
+        }
+        
+        // --- LIGHTBOX ---
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImg = document.getElementById('lightbox-img');
+
+        function openLightbox(imageSrc) {
+            lightboxImg.src = imageSrc;
+            lightbox.style.display = 'flex';
+            setTimeout(() => { lightbox.classList.add('show'); }, 10);
+        }
+
+        function closeLightbox() {
+            lightbox.classList.remove('show');
+            setTimeout(() => { 
+                lightbox.style.display = 'none'; 
+                lightboxImg.src = ''; 
+            }, 500); 
+        }
+
+        // --- EFECTO HOVER EN LUGARES (NUEVO JS) ---
+        function showPlace(imgUrl) {
+            const bgDiv = document.getElementById('place-preview-bg');
+            bgDiv.style.backgroundImage = `url('${imgUrl}')`;
+            bgDiv.style.opacity = '0.3'; // Opacidad sutil
+        }
+
+        function hidePlace() {
+            const bgDiv = document.getElementById('place-preview-bg');
+            bgDiv.style.opacity = '0';
+        }
+
+        // --- MÚSICA ---
+        const bgAudio = document.getElementById('bg-music');
+        const soundStatus = document.getElementById('sound-status');
+        let isPlaying = false;
+        bgAudio.volume = 0.2; 
+
+        function toggleMusic() {
+            if (isPlaying) {
+                bgAudio.pause();
+                soundStatus.innerText = "OFF";
+                soundStatus.style.color = "#5d4037"; 
+            } else {
+                bgAudio.play();
+                soundStatus.innerText = "ON";
+                soundStatus.style.color = "#c5a47e"; 
+            }
+            isPlaying = !isPlaying;
+        }
+
+        window.addEventListener('load', () => {
+            const playPromise = bgAudio.play();
+            if (playPromise !== undefined) {
+                playPromise.then(_ => {
+                    isPlaying = true;
+                    soundStatus.innerText = "ON";
+                    soundStatus.style.color = "#c5a47e";
+                }).catch(error => {
+                    console.log("Autoplay bloqueado. Esperando clic.");
+                    document.addEventListener('click', startMusicOnFirstInteraction, { once: true });
+                });
+            }
+        });
+
+        function startMusicOnFirstInteraction() {
+            if (!isPlaying) {
+                bgAudio.play();
+                isPlaying = true;
+                soundStatus.innerText = "ON";
+                soundStatus.style.color = "#c5a47e";
+            }
+        }        
+    </script>
+</body>
+</html>
